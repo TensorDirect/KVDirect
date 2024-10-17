@@ -1,0 +1,2 @@
+# curl -X POST http://0.0.0.0:8000/prefill -H "Content-Type: application/json" -d '{"request_id": 2, "max_tokens": 32, "temperature": 0.8, "top_p": 0.95, "ignore_eos": true, "prompt": "Today is a good day. How are you? Good"}'
+curl -X POST http://0.0.0.0:8001/generate -H "Content-Type: application/json" -d '{"max_tokens": 32, "temperature": 0.8, "top_p": 0.95, "ignore_eos": true, "prompt": "Today is a good day. How are you? Good"}'
