@@ -57,6 +57,7 @@ async def prefill(request: Request) -> Response:
 
     blocks = []
     final_output = None
+    start = time.time()
     async for request_output in results_generator:
         if engine.is_prefill_worker and not args.enable_chunked_prefill:
             assert final_output is None, "Only one output is expected"
@@ -64,6 +65,11 @@ async def prefill(request: Request) -> Response:
         seq_group = final_output.seq_group
         blocks += final_output.blocks
     assert final_output is not None
+    end = time.time()
+    print(f"[{request_id}] Prefill compute time: {end - start - seq_group.metrics.time_in_queue}")
+    print(f"[{request_id}] Prefill queue time: {seq_group.metrics.time_in_queue}")
+
+
     seq_group_data = await make_async(serialize_seq_group)(seq_group)
 
     task = asyncio.create_task(call_kv_method(engine, "wait_kv", request_id))

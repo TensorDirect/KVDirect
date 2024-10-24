@@ -157,7 +157,11 @@ async def prefill_pull(comm, request_info, request_id):
         remote_block_id,
         lock=True,
     )
-    await call_kv_method(engine, "pull_kv", request_id, local_block_ids)
+    with timer(f"[{request_id}] Transfer time") as t:
+        await call_kv_method(engine, "pull_kv", request_id, local_block_ids)
+        # wait for KV cache ready
+        await call_kv_method(engine, "wait_kv", request_id)
+    
     return prefilled_seq
 
 
@@ -191,8 +195,6 @@ async def generate(request: Request) -> Response:
         elif args.transfer_mode == "pull":
             seq_group = await prefill_pull(comm, request_info, request_id)
 
-        # wait for KV cache ready
-        await call_kv_method(engine, "wait_kv", request_id)
         prefill_cm.__exit__(None, None, None)
 
 
@@ -206,8 +208,8 @@ async def generate(request: Request) -> Response:
             decode_cm = t.record("Decode")
             decode_cm.__enter__()
         decode_cm.__exit__(None, None, None)
-        # t.tagged_time["Decode"] /= t.tagged_count["Decode"] - 1
-
+        print(f"[{request_id}] Decode compute time: {t.tagged_time['Decode'] - seq_group.metrics.time_in_queue}")
+        print(f"[{request_id}] Decode queue time: {seq_group.metrics.time_in_queue}")
     assert final_output is not None
     prompt = final_output.prompt
     text = [prompt + output.text for output in final_output.outputs]
